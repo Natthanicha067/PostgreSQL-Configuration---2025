@@ -596,6 +596,9 @@ FROM get_memory_usage();
 ```
 รูปผลการทดลอง
 ```
+<img width="1150" height="629" alt="Screenshot 2568-09-16 at 11 52 26" src="https://github.com/user-attachments/assets/356355c4-b7b6-4261-8b84-94f828c25375" />
+
+```
 
 #### 6.2 การติดตาม Buffer Hit Ratio
 ```sql
@@ -618,6 +621,13 @@ ORDER BY heap_blks_read + heap_blks_hit DESC;
 1. รูปผลการทดลอง
 2. อธิบายผลลัพธ์ที่ได้
 ```
+<img width="843" height="278" alt="Screenshot 2568-09-16 at 11 53 44" src="https://github.com/user-attachments/assets/7afa1b6a-6451-4dbc-be36-97b1d123fd85" />
+
+2.อธิบายผลลัพธ์ที่ได้
+ต้อง วิเคราะห์ค่าแต่ละคอลัมน์
+อธิบายว่า Buffer Hit Ratio สูง/ต่ำ แปลว่าอะไร
+บอกด้วยว่าค่าใกล้หรือเกิน 95% หรือไม่ และมีข้อเสนอแนะเบื้องต้น
+```
 #### 6.3 ดู Buffer Hit Ratio ทั้งระบบ
 ```sql
 SELECT datname,
@@ -631,6 +641,18 @@ WHERE datname = current_database();
 ```
 1. รูปผลการทดลอง
 2. อธิบายผลลัพธ์ที่ได้
+```
+<img width="825" height="194" alt="Screenshot 2568-09-16 at 11 56 34" src="https://github.com/user-attachments/assets/d4aa1e96-8a00-4a5c-9583-63ea7d60067f" />
+
+2.อธิบายผลลัพธ์
+blks_read → จำนวนบล็อกที่อ่านจาก ดิสก์
+blks_hit → จำนวนบล็อกที่ อ่านจาก buffer
+hit_ratio_percent → เปอร์เซ็นต์การอ่านจาก buffer
+วิเคราะห์ตัวอย่าง:
+Hit Ratio 98% → ดีมาก แสดงว่าระบบใช้ memory buffer อย่างมีประสิทธิภาพ
+Hit Ratio ต่ำ (<95%) → ต้องพิจารณาเพิ่ม shared_buffers หรือปรับ query / index
+
+
 ```
 
 #### 6.4 ดู Table ที่มี Disk I/O มาก
@@ -653,6 +675,14 @@ LIMIT 10;
 1. รูปผลการทดลอง
 2. อธิบายผลลัพธ์ที่ได้
 ```
+<img width="1076" height="265" alt="Screenshot 2568-09-16 at 11 58 31" src="https://github.com/user-attachments/assets/b48fe37b-9925-4ac6-b6c4-bbd6311aff09" />
+2.อธิบาย : จากคำสั่ง SQL ที่ใช้ดูตารางที่มีการอ่านข้อมูลจาก disk (heap_blks_read) มากที่สุด พบว่า:
+ตารางที่มีการเข้าถึงสูงสุดคือ large_table ซึ่งมี จำนวนการเข้าถึงข้อมูลทั้งหมด (total_access) = 621,037 ครั้ง
+แต่ ไม่มีการอ่านข้อมูลจาก disk เลย (heap_blks_read = 0)
+การเข้าถึงทั้งหมดมาจาก buffer cache (heap_blks_hit = 621037)
+ค่า hit ratio = 100% แสดงว่าข้อมูลทั้งหมดถูกดึงมาจาก cache ในหน่วยความจำ
+ขนาดของตาราง large_table คือ 94 MB
+```
 ### Step 7: การปรับแต่ง Autovacuum
 
 #### 7.1 ทำความเข้าใจ Autovacuum Parameters
@@ -667,6 +697,24 @@ ORDER BY name;
 ```
 1. รูปผลการทดลอง
 2. อธิบายค่าต่าง ๆ ที่มีความสำคัญ
+```
+<img width="1335" height="363" alt="Screenshot 2568-09-16 at 12 09 34" src="https://github.com/user-attachments/assets/65ca5c00-15fb-49f0-afc4-02ff4b8b3839" />
+2.อธิบายค่าที่มีความสำคัญ
+autovacuum = on
+แสดงว่าระบบเปิดการทำงานของ autovacuum ซึ่งเป็นสิ่งที่ควรทำเสมอ เพื่อป้องกัน table bloating และ XID wraparound
+autovacuum_naptime = 60s
+Autovacuum จะรอ 60 วินาทีก่อนเริ่มรอบถัดไป
+autovacuum_vacuum_threshold = 50
+ระบบจะเริ่ม vacuum เมื่อมีการเปลี่ยนแปลง row อย่างน้อย 50 แถว (หรือมากกว่า ตาม scale factor)
+autovacuum_vacuum_scale_factor = 0.2
+ระบบจะเริ่ม vacuum เมื่อมีการเปลี่ยนแปลงมากกว่า 20% ของจำนวน row ทั้งหมดในตารางนั้น
+autovacuum_max_workers = 3
+สามารถมี worker autovacuum ทำงานพร้อมกันได้ 3 ตัว
+log_autovacuum_min_duration = -1
+หมายถึงระบบจะไม่ log การทำ autovacuum เว้นแต่ว่าเปลี่ยนค่าให้มากกว่า 0
+autovacuum_freeze_max_age = 200000000
+บังคับ vacuum เพื่อป้องกัน XID wraparound เมื่อมีการใช้งาน transaction มากเกินไป
+
 ```
 
 #### 7.2 การปรับแต่ง Autovacuum สำหรับประสิทธิภาพ
@@ -696,6 +744,9 @@ SELECT pg_reload_conf();
 ### ผลการทดลอง
 ```
 รูปผลการทดลองการปรับแต่ง Autovacuum (Capture รวมทั้งหมด 1 รูป)
+```
+<img width="681" height="144" alt="Screenshot 2568-09-16 at 12 19 49" src="https://github.com/user-attachments/assets/4d61d264-2eb1-45ab-afe8-78199ca5a124" />
+
 ```
 
 ### Step 8: Performance Testing และ Benchmarking
@@ -773,6 +824,16 @@ ORDER BY test_timestamp DESC;
 1. รูปผลการทดลอง
 2. อธิบายผลลัพธ์ที่ได้
 ```
+<img width="692" height="252" alt="Screenshot 2568-09-16 at 12 32 50" src="https://github.com/user-attachments/assets/9caf334c-f6e3-4110-a7a2-321886e53805" />
+
+
+2. อธิบายผลลัพธ์ที่ได้
+large_sort ใช้เวลาในการประมวลผลน้อยมาก (2-3 ms) แสดงว่า query นี้เป็นแบบที่เบา หรือมี index/โครงสร้างข้อมูลช่วยให้ทำงานเร็ว
+aggregation ใช้เวลามากกว่าอย่างชัดเจน (ประมาณ 250-265 ms) เพราะ query นี้ทำงานกับกลุ่มข้อมูล และอาจมีการ scan หรือประมวลผลเยอะกว่า
+ค่าเวลา execution มีความสม่ำเสมอในแต่ละรอบทดสอบ (ค่าต่างกันไม่เยอะ) แสดงถึงความนิ่งของระบบและการตั้งค่า config 'optimized'
+การทดสอบนี้ช่วยยืนยันว่า config 'optimized' สามารถรัน query เหล่านี้ได้ในเวลาที่เหมาะสม และพร้อมสำหรับการใช้งานจริง
+ถ้าต้องการประเมินผลเพิ่มเติม ควรเพิ่มการทดสอบกับ config 'default' เพื่อเปรียบเทียบว่าการปรับแต่ง config ช่วยลดเวลา execution ได้มากแค่ไหน
+```
 
 
 ### Step 9: การ Monitoring และ Alerting
@@ -808,6 +869,8 @@ SELECT * FROM memory_monitor;
 ### ผลการทดลอง
 ```
 รูปผลการทดลอง
+```
+<img width="697" height="468" alt="Screenshot 2568-09-16 at 12 34 41" src="https://github.com/user-attachments/assets/39622bce-6b2f-48c7-ab07-b7c733d72dc0" />
 ```
 
 ### Step 10: การจำลอง Load Testing
@@ -857,6 +920,9 @@ CREATE INDEX idx_orders_date ON load_test_orders(order_date);
 ### ผลการทดลอง
 ```
 รูปผลการทดลอง การสร้าง FUNCTION และ INDEX
+```
+<img width="715" height="671" alt="Screenshot 2568-09-16 at 12 39 10" src="https://github.com/user-attachments/assets/affadfe1-242d-4c94-bc01-66e6cb5ede62" />
+
 ```
 
 #### 10.2 การทดสอบ Query Performance
