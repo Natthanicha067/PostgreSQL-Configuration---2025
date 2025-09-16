@@ -1629,8 +1629,9 @@ ORDER BY hit_ratio;
 ```
 รูปผลการทดลอง
 ```
-![Uploading Screenshot 2568-09-16 at 13.22.05.png…]()
+<img width="500" height="299" alt="Screenshot 2568-09-16 at 13 22 05" src="https://github.com/user-attachments/assets/67407e51-65aa-4ccc-9bfc-f843c1b2a64c" />
 
+```
 ### การคำนวณ Memory Requirements
 
 #### สูตรคำนวณพื้นฐาน
