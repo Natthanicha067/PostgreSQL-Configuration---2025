@@ -1100,13 +1100,27 @@ SELECT * FROM simulate_oltp_workload(25);
 ### ผลการทดลอง
 ```
 รูปผลการทดลอง
+
+<img width="713" height="197" alt="Screenshot 2568-09-16 at 12 46 19" src="https://github.com/user-attachments/assets/9dc864f9-09e3-44c4-a1ea-739bc40d48fa" />
+
 ```
 -- ทดสอบปานกลาง  
 SELECT * FROM simulate_oltp_workload(100);
+```
+<img width="694" height="208" alt="Screenshot 2568-09-16 at 12 47 39" src="https://github.com/user-attachments/assets/f0be138d-f923-4726-85e2-6b2a73f675e2" />
+
 ### ผลการทดลอง
 ```
 1. รูปผลการทดลอง
-2. อธิบายผลการทดลอง การ SELECT , INSERT, UPDATE, DELETE เป็นอย่างไร 
+2. อธิบายผลการทดลอง การ SELECT , INSERT, UPDATE, DELETE เป็นอย่างไร
+```
+<img width="1792" height="1120" alt="Screenshot 2568-09-16 at 12 52 00" src="https://github.com/user-attachments/assets/7bee42a0-ce04-4ce3-9851-1c5c44e5a27a" />
+
+ 2.SELECT ใช้เวลาเร็วมาก (~0.065 ms) เพราะเป็นการอ่านข้อมูล มีดัชนีช่วย ทำงานได้ลื่นไหล
+INSERT ก็เร็ว (~0.032 ms) เพราะแค่เพิ่มข้อมูลใหม่ ไม่มีความซับซ้อน
+UPDATE ช้ากว่ามาก (~162 ms) เพราะต้องค้นหาและแก้ไขข้อมูล พร้อมล็อกแถว ทำให้ใช้เวลานาน
+DELETE (soft delete) ช้าที่สุด (~226 ms) เนื่องจากเป็นการอัปเดตข้อมูลแบบลบแบบนิ่ม ต้องเช็คข้อมูลก่อนทำงาน
+
 ```
 
 -- ทดสอบหนักขึ้น เครื่องใครไม่ไหวผ่านก่อน หรือเปลี่ยนค่า 500 เป็น 200 :)
@@ -1114,6 +1128,9 @@ SELECT * FROM simulate_oltp_workload(500);
 ### ผลการทดลอง
 ```
 รูปผลการทดลอง
+```
+```
+<img width="807" height="207" alt="Screenshot 2568-09-16 at 12 56 56" src="https://github.com/user-attachments/assets/97673ad0-b612-4d11-9140-5f9dfd7fb65a" />
 ```
 
 ### Step 11: การเปรียบเทียบประสิทธิภาพ
