@@ -1327,6 +1327,7 @@ SELECT * FROM run_benchmark_suite();
 ```
 รูปผลการทดลอง
 ```
+<img width="678" height="171" alt="Screenshot 2568-09-16 at 13 01 50" src="https://github.com/user-attachments/assets/df7de23f-4dc4-41d5-b45d-d557f8d76a84" />
 
 -- ดูผลการทดสอบ
 SELECT 
@@ -1344,7 +1345,9 @@ ORDER BY test_timestamp DESC;
 ```
 รูปผลการทดลอง
 ```
-
+```
+<img width="1028" height="308" alt="Screenshot 2568-09-16 at 13 04 21" src="https://github.com/user-attachments/assets/95ff5c3b-40a4-4900-830d-91e2a9a7dc8b" />
+```
 ### Step 12: การจัดการ Configuration แบบ Advanced
 
 #### 12.1 การสร้าง Configuration Profiles
@@ -1626,6 +1629,7 @@ ORDER BY hit_ratio;
 ```
 รูปผลการทดลอง
 ```
+![Uploading Screenshot 2568-09-16 at 13.22.05.png…]()
 
 ### การคำนวณ Memory Requirements
 
@@ -1663,3 +1667,32 @@ Estimated Usage = 2GB + (32MB × 100 × 0.5) + 512MB + 64MB
 5. Buffer hit ratio คืออะไร
 6. แสดงผลการคำนวณ การกำหนดค่าหน่วยความจำต่าง ๆ โดยอ้างอิงเครื่องของตนเอง
 7. การสแกนของฐานข้อมูล PostgreSQL มีกี่แบบอะไรบ้าง เปรียบเทียบการสแกนแต่ละแบบ
+   ตอบ
+   ข้อ 1: Shared Memory
+Memory ที่ process ต่างๆ ใช้ร่วมกัน เช่น shared_buffers, wal_buffers
+ตั้งค่า: shared_buffers ≈ 25–40% ของ RAM, wal_buffers ≈ shared_buffers/32
+ข้อ 2: Work Memory & Maintenance Work Memory
+work_mem → memory ต่อ operation/session (sort, join)
+maintenance_work_mem → memory สำหรับงาน maintenance เช่น VACUUM, CREATE INDEX
+ตั้งค่า: work_mem เล็กพอไม่กิน RAM เกิน, maintenance_work_mem ตั้งใหญ่ได้เพื่อเร่งงาน
+ข้อ 3: ตัวอย่าง RAM 16 GB, connections = 200
+shared_buffers = 4 GB
+work_mem ≈ 30 MB
+maintenance_work_mem ≈ 512 MB
+ข้อ 4: postgresql.conf vs postgresql.auto.conf
+postgresql.conf → ไฟล์หลักสำหรับตั้งค่า
+postgresql.auto.conf → เก็บค่าที่เปลี่ยนด้วย ALTER SYSTEM
+PostgreSQL โหลดทั้งสองไฟล์เมื่อ start/reload
+ข้อ 5: Buffer Hit Ratio
+อัตรา cache hit ของ shared_buffers
+สูตร: heap_blks_hit / (heap_blks_hit + heap_blks_read) * 100%
+ยิ่งสูง → ระบบใช้ cache ดี ลด I/O
+ข้อ 6: การคำนวณ memory เครื่องตัวเอง
+RAM 16 GB, shared_buffers 4 GB → เหลือ 12 GB สำหรับ work_mem/maintenance
+work_mem = 12GB / (200 connections × 2 operation) ≈ 30 MB
+maintenance_work_mem ≈ 512 MB
+ข้อ 7: การสแกนของ PostgreSQL
+PostgreSQL มีการสแกนหลัก 3 แบบ:
+Sequential Scan → อ่านทุก row ใน table เหมาะกับ table ใหญ่หรือไม่มี index
+Index Scan → ใช้ index เลือก row ที่ต้องการ เหมาะกับ query เลือก subset ของ table
+Bitmap Scan → สร้าง bitmap ของ row ก่อนอ่าน table เหมาะกับ query หลาย row แต่ไม่ทั้งหมด
