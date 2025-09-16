@@ -193,6 +193,9 @@ docker exec postgres-config df -h
 2. option -h ในคำสั่งมีผลอย่างไร
 3. docker exec postgres-config nproc  แสดงค่าผลลัพธ์อย่างไร
 ```
+<img width="633" height="215" alt="Screenshot 2568-09-16 at 10 16 35" src="https://github.com/user-attachments/assets/2fd49332-0800-4678-9be7-57dfa33ac574" />
+
+
 #### 1.2 เชื่อมต่อและตรวจสอบสถานะปัจจุบัน
 ```bash
 docker exec -it postgres-config psql -U postgres
@@ -212,6 +215,14 @@ SHOW data_directory;
 1. ตำแหน่งที่อยู่ของไฟล์ configuration อยู่ที่ตำแหน่งใด
 2. ตำแหน่งที่อยู่ของไฟล์ data อยู่ที่ตำแหน่งใด
 ```
+```
+ตอบ ตำแหน่งที่อยู่ของไฟล์ configuration → /var/lib/postgresql/data/postgresql.conf
+ตำแหน่งที่อยู่ของไฟล์ data → /var/lib/postgresql/data
+
+<img width="889" height="420" alt="Screenshot 2568-09-16 at 10 19 59" src="https://github.com/user-attachments/assets/673d3adc-1f2c-4ae3-8d33-383f8d1cc9da" />
+
+```
+```
 -- ตรวจสอบการตั้งค่าปัจจุบัน
 SELECT name, setting, unit, category, short_desc 
 FROM pg_settings 
@@ -223,6 +234,9 @@ WHERE name IN (
 ### บันทึกผลการทดลอง
 ```
 บันทึกรูปผลของ configuration ทั้ง 6 ค่า 
+```
+```
+<img width="1192" height="313" alt="Screenshot 2568-09-16 at 10 33 07" src="https://github.com/user-attachments/assets/c994ec49-9dfe-4679-8993-fd386aca40b5" />
 ```
 
 ### Step 2: การปรับแต่งพารามิเตอร์แบบค่อยเป็นค่อยไป
