@@ -254,6 +254,9 @@ WHERE name = 'shared_buffers';
 2. ค่า  shared_buffers มีการกำหนดค่าไว้เท่าไหร่ (ใช้ setting X unit)
 3. ค่า  pending_restart ในผลการทดลองมีค่าเป็นอย่างไร และมีความหมายอย่างไร
 ```
+```
+<img width="607" height="141" alt="Screenshot 2568-09-16 at 10 36 50" src="https://github.com/user-attachments/assets/4a895869-f4d5-438d-ac7a-2e3f2d02780d" />
+
 -- คำนวณและตั้งค่าใหม่
 -- สำหรับระบบ 2GB: 512MB (25%)
 ALTER SYSTEM SET shared_buffers = '512MB';
@@ -272,9 +275,8 @@ docker exec -it -u postgres postgres-config pg_ctl restart -D /var/lib/postgresq
 ```
 รูปผลการเปลี่ยนแปลงค่า pending_restart
 รูปหลังจาก restart postgres
-
+<img width="768" height="369" alt="Screenshot 2568-09-16 at 10 43 57" src="https://github.com/user-attachments/assets/d49128c5-6522-4164-83b5-5b24b73ef669" />
 ```
-
 #### 2.2 ปรับแต่ง Work Memory (ไม่ต้อง restart)
 ```sql
 -- ตรวจสอบค่าปัจจุบัน
@@ -298,6 +300,10 @@ WHERE name = 'work_mem';
 รูปผลการเปลี่ยนแปลงค่า work_mem
 ```
 
+<img width="366" height="422" alt="Screenshot 2568-09-16 at 10 49 56" src="https://github.com/user-attachments/assets/583165c0-6551-4224-a837-e3fa3ba29577" />
+
+```
+
 #### 3.3 ปรับแต่ง Maintenance Work Memory
 ```sql
 -- ตรวจสอบค่าปัจจุบัน
@@ -313,6 +319,9 @@ SHOW maintenance_work_mem;
 ### ผลการทดลอง
 ```
 รูปผลการเปลี่ยนแปลงค่า maintenance_work_mem
+```
+<img width="454" height="316" alt="Screenshot 2568-09-16 at 10 53 05" src="https://github.com/user-attachments/assets/ebe23f45-df92-4dc4-a1e9-267fdcd9a90d" />
+
 ```
 
 #### 3.4 ปรับแต่ง WAL Buffers
@@ -339,6 +348,9 @@ SHOW wal_buffers;
 ```
 รูปผลการเปลี่ยนแปลงค่า wal_buffers
 ```
+<img width="323" height="125" alt="Screenshot 2568-09-16 at 11 02 41" src="https://github.com/user-attachments/assets/13e39be2-5604-4225-8ae3-ee24bf634df8" />
+
+```
 
 #### 3.5 ปรับแต่ง Effective Cache Size
 ```sql
@@ -355,6 +367,9 @@ SHOW effective_cache_size;
 ### ผลการทดลอง
 ```
 รูปผลการเปลี่ยนแปลงค่า effective_cache_size
+```
+<img width="576" height="304" alt="Screenshot 2568-09-16 at 11 04 47" src="https://github.com/user-attachments/assets/0c0039d5-457c-4a45-9812-5d5360e020e9" />
+
 ```
 
 ### Step 4: ตรวจสอบผล
@@ -384,6 +399,9 @@ ORDER BY name;
 ### ผลการทดลอง
 ```
 รูปผลการลัพธ์การตั้งค่า
+```
+<img width="1111" height="412" alt="Screenshot 2568-09-16 at 11 05 57" src="https://github.com/user-attachments/assets/9b7954d8-be5d-4ed7-9bf8-ff26fb0671df" />
+
 ```
 
 ### Step 5: การสร้างและทดสอบ Workload
@@ -431,6 +449,34 @@ LIMIT 1000;
 2. รูปผลการรัน
 3. อธิบายผลลัพธ์ที่ได้
 ```
+1. คำสั่ง EXPLAIN (ANALYZE, BUFFERS) คืออะไร
+ใน PostgreSQL:
+EXPLAIN
+ใช้เพื่อ แสดงแผนการประมวลผล query ว่าฐานข้อมูลจะทำงานอย่างไร เช่น ใช้ index ไหน, scan ตารางแบบ sequential หรือไม่, join แบบไหน ฯลฯ
+ANALYZE
+ทำให้ PostgreSQL รัน query จริงๆ และรวมเวลา execution ของแต่ละขั้นตอนเข้าไปด้วย
+BUFFERS
+แสดงข้อมูล การใช้งาน buffer/page ของดิสก์และ shared memory ว่ามีการอ่าน/เขียนกี่ครั้ง (disk read, buffer hit, etc.)
+
+<img width="1116" height="1078" alt="Screenshot 2568-09-16 at 11 15 51" src="https://github.com/user-attachments/assets/3fe323eb-3b31-42ea-8e8b-0b906989a70e" />
+3. อธิบายผลลัพธ์ที่ได้
+Limit
+แสดงว่า query จำกัดจำนวน row ที่ return 1000 rows
+actual time=1.234..1.456 → ใช้เวลาเริ่มต้นถึงสิ้นสุดในการดึง 1000 rows
+rows=1000 → จำนวน row ที่ได้จริง
+Sort
+แสดงว่ามี ขั้นตอน sort ข้อมูลก่อน limit
+Sort Key: data → sort ตาม column data
+ขั้นตอนนี้จะใช้ work_mem ถ้า sort ใหญ่เกิน memory ระบบจะ spill ลง disk
+Seq Scan
+บอกว่า PostgreSQL อ่านข้อมูลจาก table แบบ sequential scan
+rows=500000 → จำนวน row ที่อ่านทั้งหมด
+แสดงว่า ไม่ได้ใช้ index เพราะ query order by column data ซึ่ง index ที่มีคือ number และ created_at
+Buffers
+shared hit=512 → ใช้ data จาก buffer cache
+read=0 → ไม่ต้องอ่านจาก disk เพิ่ม
+
+
 ```sql
 -- ทดสอบ Hash operation
 EXPLAIN (ANALYZE, BUFFERS)
@@ -446,6 +492,31 @@ LIMIT 100;
 1. รูปผลการรัน
 2. อธิบายผลลัพธ์ที่ได้ 
 3. การสแกนเป็นแบบใด เกิดจากเหตุผลใด
+```
+<img width="1383" height="379" alt="Screenshot 2568-09-16 at 11 19 29" src="https://github.com/user-attachments/assets/6e1f47f3-c0ca-499c-9f4c-74d8fe97ecd1" />
+2. อธิบายผลลัพธ์ที่ได้
+Seq Scan
+PostgreSQL อ่านข้อมูลจากตาราง large_table แบบ sequential scan
+อ่านทุก row เพราะ query group by number และมีจำนวน value เยอะ (index บน column number ไม่ช่วย group by ทั้งหมด)
+rows=500000 → จำนวน row ที่อ่านทั้งหมด
+HashAggregate
+PostgreSQL ใช้ hash aggregate เพื่อทำ GROUP BY number
+สร้าง hash table ใน memory (work_mem) เพื่อรวมจำนวนแต่ละ number
+Group Key: number → column ที่ใช้สำหรับ hash
+ถ้า hash table ใหญ่เกิน work_mem อาจ spill ลง disk (สังเกตจาก disk ใน Buffers/EXPLAIN)
+Limit
+query ถูกจำกัดให้ return 100 row (LIMIT 100)
+PostgreSQL ทำ aggregation ทั้งหมดก่อนค่อย limit
+Buffers
+shared hit=350 read=0 → ใช้ memory cache อ่านข้อมูล ไม่ต้องอ่านจาก disk
+
+3. การสแกนเป็นแบบใด เกิดจากเหตุผลใด
+Scan type: Sequential Scan (Seq Scan)
+เหตุผล:
+Query ต้องอ่านทุก row ของ table เพราะต้องทำ GROUP BY number
+แม้ว่ามี index บน number ก็ตาม แต่ index scan จะไม่ช่วยใน aggregation (COUNT + GROUP BY) ได้ดี
+PostgreSQL เลือก Seq Scan เพราะ คุ้มค่ากับการอ่าน row ทั้ง table และสร้าง hash aggregate
+
 ```
 #### 5.3 การทดสอบ Maintenance Work Memory
 ```sql
@@ -464,6 +535,23 @@ VACUUM (ANALYZE, VERBOSE) large_table;
 ```
 1. รูปผลการทดลอง จากคำสั่ง VACUUM (ANALYZE, VERBOSE) large_table;
 2. อธิบายผลลัพธ์ที่ได้
+```
+<img width="1043" height="599" alt="Screenshot 2568-09-16 at 11 21 53" src="https://github.com/user-attachments/assets/7fa9158c-0d13-4424-9cd6-47e47d3cfc15" />
+2. อธิบายผลลัพธ์ที่ได้
+DELETE FROM large_table WHERE id % 10 = 0;
+ลบ row ที่ id หาร 10 ลงตัว
+PostgreSQL จะ ไม่ลบ row ทันที แต่ทำให้ row เหล่านั้นกลายเป็น dead tuples
+VACUUM (ANALYZE, VERBOSE)
+VACUUM
+ทำความสะอาด dead tuples
+คืนพื้นที่ให้ระบบใช้ซ้ำ (reuse space)
+ทำให้ table และ index มีประสิทธิภาพมากขึ้น
+ไม่ต้อง lock table ทั้งหมด ทำให้ยังอ่าน/เขียนได้
+ANALYZE
+เก็บสถิติ column/row ใหม่
+ช่วยให้ query planner เลือกแผน query ที่เหมาะสม
+VERBOSE
+แสดงรายละเอียดการทำงาน เช่น จำนวน dead tuples, row ที่วิเคราะห์, index ที่ถูก vacuum
 ```
 ### Step 6: การติดตาม Memory Usage
 
